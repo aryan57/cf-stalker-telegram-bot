@@ -1,11 +1,11 @@
 /*
   For running this for the first time, 
-  comment the code send_message_from_bot(message) in line 186
+  comment the code send_message_from_bot(message)
   in function get_new_submissions()
 
   this will only update the google sheet for the first time.
 
-  this is done because first time you will get approx 5000 submissions,
+  this is done because first time you will get approx MAX_SUBMISSIONS*NUM_OF_FRIENDS submissions,
   which will reach api limit of telegram bot.
 
   now uncomment, and keep running it every hour(using a trigger),
@@ -70,13 +70,20 @@ function get_friends_list() {
 
   var url="https://codeforces.com/api/user.friends?apiKey="+environment().CF_API_KEY+"&time="+today_in_unix_string+"&apiSig="+randStr+hash;
 
+  friends_list=[]
 
-  var response = UrlFetchApp.fetch(url);
-  response = JSON.parse(response);
+  try{
+    var response = UrlFetchApp.fetch(url);
+    response = JSON.parse(response);
+    friends_list=response["result"];
+    
+  }catch(e)
+  {
+    console.log("Error in [get_friends_list]");
+  }
   
-  Logger.log("Fetched ["+response["result"].length+"] friends  from codeforces api.");
-  return response["result"];
-
+  Logger.log("Fetched ["+friends_list.length+"] friends  from codeforces api.");
+  return friends_list;
 }
 
 function get_submissions_from_cf_api()
@@ -93,44 +100,52 @@ function get_submissions_from_cf_api()
   {
     var url = "https://codeforces.com/api/user.status?handle="+friends_list[i]+"&from=1&count="+environment().MAX_SUBMISSIONS;
 
-    var response = UrlFetchApp.fetch(url);
-    response = JSON.parse(response);
+    try{
+      var response = UrlFetchApp.fetch(url);
+      response = JSON.parse(response);
 
-    response = response["result"];
+      response = response["result"];
 
-    for(var j=0;j<response.length;j++)
+      for(var j=0;j<response.length;j++)
+      {
+        var submission = {};
+        submission["author"] = friends_list[i];
+
+        submission["id"] = response[j]["id"].toString();
+
+        submission["verdict"] = response[j]["verdict"].toString();
+
+        submission["name"] = response[j]["problem"]["index"].toString()+" - "+response[j]["problem"]["name"].toString();
+        submission["url"] = "codeforces.com/contest/"+response[j]["contestId"].toString()+"/submission/"+response[j]["id"].toString();
+
+        submission["tags"] = response[j]["problem"]["tags"].toString();
+        submission["tags"] = submission["tags"].replace(/,/g,', '); // replace all ',' with ', '
+
+        submission["contestId"]="";
+        if(response[j]["contestId"]!=undefined)
+        {
+          submission["contestId"] = response[j]["contestId"].toString();
+        }
+
+
+        submission["rating"] = "Rating = ";
+        if(response[j]["problem"]["rating"]!=undefined)
+        {
+          submission["rating"] += response[j]["problem"]["rating"].toString();
+        }
+
+        submission["submissionTime"] = Utilities.formatDate(new Date(response[j]["creationTimeSeconds"]*1000), "GMT+5:30", "HH:mm | dd/MM/yyyy").toString();
+
+        list_of_submissions.push(submission);
+      }
+
+    }catch(e)
     {
-      var submission = {};
-      submission["author"] = friends_list[i];
-
-      submission["id"] = response[j]["id"].toString();
-
-      submission["verdict"] = response[j]["verdict"].toString();
-
-      submission["name"] = response[j]["problem"]["index"].toString()+" - "+response[j]["problem"]["name"].toString();
-      submission["url"] = "codeforces.com/contest/"+response[j]["contestId"].toString()+"/submission/"+response[j]["id"].toString();
-
-      submission["tags"] = response[j]["problem"]["tags"].toString();
-      submission["tags"] = submission["tags"].replace(/,/g,', '); // replace all ',' with ', '
-
-      submission["contestId"]="";
-      if(response[j]["contestId"]!=undefined)
-      {
-        submission["contestId"] = response[j]["contestId"].toString();
-      }
-
-
-      submission["rating"] = "Rating = ";
-      if(response[j]["problem"]["rating"]!=undefined)
-      {
-        submission["rating"] += response[j]["problem"]["rating"].toString();
-      }
-
-      submission["submissionTime"] = Utilities.formatDate(new Date(response[j]["creationTimeSeconds"]*1000), "GMT+5:30", "HH:mm | dd/MM/yyyy").toString();
-
-      list_of_submissions.push(submission);
-
+      console.log("Error in [get_submissions_from_cf_api]");
     }
+    
+
+    
   }
 
   Logger.log("Fetched ["+list_of_submissions.length+"] submissions from codeforces api.");
