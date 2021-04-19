@@ -22,14 +22,14 @@ function environment()
 
   return {
     TOT_CHARS : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-    CF_API_KEY : "<REPLACE_THIS>",
-    CF_API_SECRET : "<REPLACE_THIS>",
+    CF_API_KEY : "**REMOVED**",
+    CF_API_SECRET : "",
     RAND_STR_LEN : 6,
     MAX_SUBMISSIONS:100,
-    SPREADSHEET_ID : "<REPLACE_THIS>",
+    SPREADSHEET_ID : "**REMOVED**",
     RANGE_NAME : 'Sheet1!A1:A',
-    TELEGRAM_BOT_SECRET :'<REPLACE_THIS>',
-    TELEGRAM_CHAT_ID_WITH_ME : '<REPLACE_THIS>'
+    TELEGRAM_BOT_SECRET :'**REMOVED**',
+    TELEGRAM_CHAT_ID_WITH_ME : '**REMOVED**'
   };
 }
 
@@ -96,57 +96,59 @@ function get_submissions_from_cf_api()
 
   var list_of_submissions =[];
 
-  for(var i=0;i<friends_list.length;i++)
-  {
-    var url = "https://codeforces.com/api/user.status?handle="+friends_list[i]+"&from=1&count="+environment().MAX_SUBMISSIONS;
+  
 
     try{
-      var response = UrlFetchApp.fetch(url);
-      response = JSON.parse(response);
-
-      response = response["result"];
-
-      for(var j=0;j<response.length;j++)
+      for(var i=0;i<friends_list.length;i++)
       {
-        var submission = {};
-        submission["author"] = friends_list[i];
+        var url = "https://codeforces.com/api/user.status?handle="+friends_list[i]+"&from=1&count="+environment().MAX_SUBMISSIONS;
+        var response = UrlFetchApp.fetch(url);
+        response = JSON.parse(response);
 
-        submission["id"] = response[j]["id"].toString();
+        response = response["result"];
 
-        submission["verdict"] = response[j]["verdict"].toString();
-
-        submission["name"] = response[j]["problem"]["index"].toString()+" - "+response[j]["problem"]["name"].toString();
-        submission["url"] = "codeforces.com/contest/"+response[j]["contestId"].toString()+"/submission/"+response[j]["id"].toString();
-
-        submission["tags"] = response[j]["problem"]["tags"].toString();
-        submission["tags"] = submission["tags"].replace(/,/g,', '); // replace all ',' with ', '
-
-        submission["contestId"]="";
-        if(response[j]["contestId"]!=undefined)
+        for(var j=0;j<response.length;j++)
         {
-          submission["contestId"] = response[j]["contestId"].toString();
+          var submission = {};
+          submission["author"] = friends_list[i];
+
+          submission["id"] = response[j]["id"].toString();
+
+          submission["verdict"] = response[j]["verdict"].toString();
+
+          submission["name"] = response[j]["problem"]["index"].toString()+" - "+response[j]["problem"]["name"].toString();
+          submission["url"] = "codeforces.com/contest/"+response[j]["contestId"].toString()+"/submission/"+response[j]["id"].toString();
+
+          submission["tags"] = response[j]["problem"]["tags"].toString();
+          submission["tags"] = submission["tags"].replace(/,/g,', '); // replace all ',' with ', '
+
+          submission["contestId"]="";
+          if(response[j]["contestId"]!=undefined)
+          {
+            submission["contestId"] = response[j]["contestId"].toString();
+          }
+
+
+          submission["rating"] = "Rating = ";
+          if(response[j]["problem"]["rating"]!=undefined)
+          {
+            submission["rating"] += response[j]["problem"]["rating"].toString();
+          }
+
+          submission["submissionTime"] = Utilities.formatDate(new Date(response[j]["creationTimeSeconds"]*1000), "GMT+5:30", "HH:mm | dd/MM/yyyy").toString();
+
+          list_of_submissions.push(submission);
         }
-
-
-        submission["rating"] = "Rating = ";
-        if(response[j]["problem"]["rating"]!=undefined)
-        {
-          submission["rating"] += response[j]["problem"]["rating"].toString();
-        }
-
-        submission["submissionTime"] = Utilities.formatDate(new Date(response[j]["creationTimeSeconds"]*1000), "GMT+5:30", "HH:mm | dd/MM/yyyy").toString();
-
-        list_of_submissions.push(submission);
       }
 
     }catch(e)
     {
-      console.log("Error in [get_submissions_from_cf_api]");
+      console.error("Error in [get_submissions_from_cf_api]");
     }
     
 
     
-  }
+  
 
   Logger.log("Fetched ["+list_of_submissions.length+"] submissions from codeforces api.");
   return list_of_submissions;
