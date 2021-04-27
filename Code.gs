@@ -12,6 +12,8 @@
   you will not reach api requests limit of telegram bot
 */
 
+
+
 function main()
 {
   add_new_submissions();
@@ -23,13 +25,13 @@ function environment()
   return {
     TOT_CHARS : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
     CF_API_KEY : "**REMOVED**",
-    CF_API_SECRET : "",
+    CF_API_SECRET : "**REMOVED**",
     RAND_STR_LEN : 6,
-    MAX_SUBMISSIONS:100,
+    MAX_SUBMISSIONS:15, // trigger time is set to 15 minutes, assuming max of 1 submission per minute
     SPREADSHEET_ID : "**REMOVED**",
     RANGE_NAME : 'Sheet1!A1:A',
-    TELEGRAM_BOT_SECRET :'**REMOVED**',
-    TELEGRAM_CHAT_ID_WITH_ME : '**REMOVED**'
+    TELEGRAM_BOT_SECRET :"**REMOVED**",
+    TELEGRAM_CHAT_ID_WITH_ME : "**REMOVED**"
   };
 }
 
@@ -56,6 +58,25 @@ function randString(randStrLen)
   return randStr;
 }
 
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
 function get_friends_list() {
 
   Logger.log("Fetching friend's list from codeforces api.");
@@ -79,10 +100,11 @@ function get_friends_list() {
     
   }catch(e)
   {
-    console.log("Error in [get_friends_list]");
+    console.error("Error in [get_friends_list]");
   }
   
   Logger.log("Fetched ["+friends_list.length+"] friends  from codeforces api.");
+  shuffle(friends_list); // some times cf-api exceeds the calls, so first few friends were getting checked only before
   return friends_list;
 }
 
@@ -95,8 +117,6 @@ function get_submissions_from_cf_api()
 
 
   var list_of_submissions =[];
-
-  
 
     try{
       for(var i=0;i<friends_list.length;i++)
@@ -232,7 +252,8 @@ function add_new_submissions()
 function get_uri_encoded_string(submission)
 {
   var message="";
-  message+=encodeURIComponent("<b>"+submission["author"]+"</b>");
+  message+="%3Ca+href%3D%22https%3A%2F%2F"+"codeforces.com/submissions/"+submission["author"]+"%22%3E"+submission["author"]+"%3C%2Fa%3E";
+  // message+=encodeURIComponent("<b>"+submission["author"]+"</b>");
   message+=encodeURIComponent("\n");
   message+=encodeURIComponent(submission["submissionTime"]);
   message+=encodeURIComponent("\n");
