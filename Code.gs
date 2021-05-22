@@ -260,7 +260,7 @@ function get_uri_encoded_string(submission)
   message+=encodeURIComponent("\n");
   message+=encodeURIComponent(submission["verdict"]);
   message+=encodeURIComponent("\n");
-  message+="%3Ca+href%3D%22https%3A%2F%2F"+submission["url"]+"%2F%22%3E"+submission["name"]+"%3C%2Fa%3E";
+  message+="%3Ca+href%3D%22https%3A%2F%2F"+submission["url"]+"%2F%22%3E"+encodeURIComponent(submission["name"])+"%3C%2Fa%3E";
   message+=encodeURIComponent("\n");
   message+=encodeURIComponent(submission["rating"]);
   message+=encodeURIComponent("\n");
